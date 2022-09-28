@@ -1,7 +1,7 @@
 # Topics
-camera_topic: "/gmsl/A0/image_color"
-camera_info: "/gmsl/A0/camera_info"
-lidar_topic: "/velodyne/front/points"
+camera_topic: "/camera_manager/main/image_raw"
+camera_info: "/camera_manager/main/camera_info"
+lidar_topic: "/os1_cloud_node/points"
 
 # Dynamic rqt_reconfigure default bounds
 feature_extraction:
