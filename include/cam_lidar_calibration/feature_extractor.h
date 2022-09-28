@@ -24,6 +24,8 @@
 #include "cam_lidar_calibration/optimiser.h"
 #include "cam_lidar_calibration/point_xyzir.h"
 
+#include <ouster_ros/point.h>
+
 typedef message_filters::Subscriber<sensor_msgs::Image> image_sub_type;
 typedef message_filters::Subscriber<pcl::PointCloud<pcl::PointXYZIR>> pc_sub_type;
 

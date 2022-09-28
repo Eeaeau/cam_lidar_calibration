@@ -25,11 +25,10 @@
   <depend>rviz</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>ouster_ros</depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_definition.xml"/>
     <rviz plugin="${prefix}/plugin_description.xml"/>
 </export>
 </package>
-
-

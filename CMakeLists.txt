@@ -21,12 +21,18 @@ find_package(catkin REQUIRED COMPONENTS
   rviz
   sensor_msgs
   std_msgs
+  ouster_ros
   )
 
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
 find_package(Qt5 REQUIRED Core Widgets)
+
+# catkin_package(
+#   CATKIN_DEPENDS
+#   ouster_ros
+# )
 
 ## Setup include directories
 include_directories(
@@ -68,6 +74,7 @@ catkin_package(
   std_msgs
   sensor_msgs
   message_runtime
+  ouster_ros
 #    libutransform
   )
 
@@ -132,7 +139,7 @@ install(DIRECTORY rviz/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
   )
 
-catkin_install_python(PROGRAMS 
+catkin_install_python(PROGRAMS
   scripts/visualise_results.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
