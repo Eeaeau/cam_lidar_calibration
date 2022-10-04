@@ -1,8 +1,10 @@
 #define _USE_MATH_DEFINES
 
 #include "cam_lidar_calibration/optimiser.h"
-#include "cam_lidar_calibration/point_xyzir.h"
+// #include "cam_lidar_calibration/point_xyzir.h"
 #include <tf/transform_datatypes.h>
+
+#include <ouster_ros/point.h>
 
 namespace cam_lidar_calibration
 {
@@ -50,7 +52,7 @@ namespace cam_lidar_calibration
             auto perp = cv::Mat(sample.lidar_centre - sample.lidar_corners[0]).reshape(1);
             perp /= cv::norm(perp);
             cost += std::pow(perp.dot(camera_normal_lidar_frame), 2) / current_set_.size();
- 
+
         }
         return cost;
     }

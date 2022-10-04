@@ -22,12 +22,12 @@
 
 #include "cam_lidar_calibration/load_params.h"
 #include "cam_lidar_calibration/optimiser.h"
-#include "cam_lidar_calibration/point_xyzir.h"
+// #include "cam_lidar_calibration/point_xyzir.h"
 
 #include <ouster_ros/point.h>
 
 typedef message_filters::Subscriber<sensor_msgs::Image> image_sub_type;
-typedef message_filters::Subscriber<pcl::PointCloud<pcl::PointXYZIR>> pc_sub_type;
+typedef message_filters::Subscriber<pcl::PointCloud<ouster_ros::Point>> pc_sub_type;
 
 namespace cam_lidar_calibration
 {
@@ -40,7 +40,7 @@ namespace cam_lidar_calibration
         ~FeatureExtractor() = default;
 
         void extractRegionOfInterest(const sensor_msgs::Image::ConstPtr& img,
-                                     const pcl::PointCloud<pcl::PointXYZIR>::ConstPtr& pc);
+                                     const pcl::PointCloud<ouster_ros::Point>::ConstPtr& pc);
         bool serviceCB(Optimise::Request& req, Optimise::Response& res);
         void boundsCB(boundsConfig& config, uint32_t level);
 
@@ -52,19 +52,19 @@ namespace cam_lidar_calibration
         bool import_samples;
 
     private:
-        void passthrough(const pcl::PointCloud<pcl::PointXYZIR>::ConstPtr& input_pc,
-                         pcl::PointCloud<pcl::PointXYZIR>::Ptr& output_pc);
+        void passthrough(const pcl::PointCloud<ouster_ros::Point>::ConstPtr& input_pc,
+                         pcl::PointCloud<ouster_ros::Point>::Ptr& output_pc);
         std::tuple<std::vector<cv::Point3d>, cv::Mat> locateChessboard(const sensor_msgs::Image::ConstPtr& image);
         auto chessboardProjection(const std::vector<cv::Point2d>& corners, const cv_bridge::CvImagePtr& cv_ptr);
         void publishBoardPointCloud();
 
-        std::tuple<pcl::PointCloud<pcl::PointXYZIR>::Ptr, cv::Point3d>
-        extractBoard(const pcl::PointCloud<pcl::PointXYZIR>::Ptr& cloud, OptimisationSample &sample);
+        std::tuple<pcl::PointCloud<ouster_ros::Point>::Ptr, cv::Point3d>
+        extractBoard(const pcl::PointCloud<ouster_ros::Point>::Ptr& cloud, OptimisationSample &sample);
         std::pair<pcl::ModelCoefficients, pcl::ModelCoefficients>
-        findEdges(const pcl::PointCloud<pcl::PointXYZIR>::Ptr& edge_pair_cloud);
+        findEdges(const pcl::PointCloud<ouster_ros::Point>::Ptr& edge_pair_cloud);
         void callback_camerainfo(const sensor_msgs::CameraInfo::ConstPtr &msg);
-        void distoffset_passthrough(const pcl::PointCloud<pcl::PointXYZIR>::ConstPtr& input_pc,
-                         pcl::PointCloud<pcl::PointXYZIR>::Ptr& output_pc);
+        void distoffset_passthrough(const pcl::PointCloud<ouster_ros::Point>::ConstPtr& input_pc,
+                         pcl::PointCloud<ouster_ros::Point>::Ptr& output_pc);
         std::string getDateTime();
         int find_octant(float x, float y, float z);
 
@@ -81,7 +81,7 @@ namespace cam_lidar_calibration
         int flag = 0;
         cam_lidar_calibration::boundsConfig bounds_;
 
-        typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, pcl::PointCloud<pcl::PointXYZIR>>
+        typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, pcl::PointCloud<ouster_ros::Point>>
                 ImageLidarSyncPolicy;
         std::shared_ptr<image_sub_type> image_sub_;
         std::shared_ptr<pc_sub_type> pc_sub_;
@@ -89,7 +89,7 @@ namespace cam_lidar_calibration
         int queue_rate_ = 10; // This was 5 before but I changed to 10 cause Robosense to camera A0 has big timestamp misalign
         int num_samples = 0;
 
-        std::vector<pcl::PointCloud<pcl::PointXYZIR>::Ptr> pc_samples_;
+        std::vector<pcl::PointCloud<ouster_ros::Point>::Ptr> pc_samples_;
         ros::Publisher board_cloud_pub_, bounded_cloud_pub_;
         ros::Publisher samples_pub_;
         image_transport::Publisher image_publisher;

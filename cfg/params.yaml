@@ -11,12 +11,12 @@ feature_extraction:
   y_max: 8.0
   z_min: -5.0
   z_max: 5.0
-  
+
 # Properties of chessboard calibration target
 chessboard:
   pattern_size:
-    height: 7
-    width: 5  
+    height: 13
+    width: 8
   square_length: 95
   board_dimension:
     width: 610

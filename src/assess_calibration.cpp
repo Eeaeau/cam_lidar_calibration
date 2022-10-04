@@ -2,7 +2,7 @@
 #include <string>
 #include <numeric>
 
-#include "cam_lidar_calibration/point_xyzir.h"
+// #include "cam_lidar_calibration/point_xyzir.h"
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -22,6 +22,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 
+#include <ouster_ros/point.h>
 double colmap[50][3]={{0,0,0.5385},{0,0,0.6154},{0,0,0.6923},{0,0,0.7692},{0,0,0.8462},{0,0,0.9231},{0,0,1.0000},{0,0.0769,1.0000},{0,0.1538,1.0000},{0,0.2308,1.0000},{0,0.3846,1.0000},
                       {0,0.4615,1.0000},{0,0.5385,1.0000},{0,0.6154,1.0000},{0,0.6923,1.0000},{0,0.7692,1.0000},{0,0.8462,1.0000},{0,0.9231,1.0000},{0,1.0000,1.0000},{0.0769,1.0000,0.9231},
                       {0.1538,1.0000,0.8462},{0.2308,1.0000,0.7692},{0.3077,1.0000,0.6923},{0.3846,1.0000,0.6154},{0.4615,1.0000,0.5385},{0.5385,1.0000,0.4615},{0.6154,1.0000,0.3846},
@@ -106,7 +107,7 @@ class AssessCalibration {
 
     public:
         AssessCalibration(): nh_("~") {
-            
+
             nh_.getParam("visualise_pose_num", visualise_pose_num);
             nh_.getParam("visualise", visualise);
             nh_.getParam("csv", csv);
@@ -116,7 +117,7 @@ class AssessCalibration {
             {
                 data_dir = csv.substr(0, last_slash_idx);
             }
-            
+
             public_nh_.getParam("distortion_model", distortion_model);
             public_nh_.getParam("height", height);
             public_nh_.getParam("width", width);
@@ -171,7 +172,7 @@ class AssessCalibration {
             tf_msg.transform.translation.x = transform.inverse().getOrigin().x();
             tf_msg.transform.translation.y = transform.inverse().getOrigin().y();
             tf_msg.transform.translation.z = transform.inverse().getOrigin().z();
-            
+
             double r_val,y_val,p_val;
             double d1,d2,d3;
             geometry_msgs::Quaternion q = tf_msg.transform.rotation;
@@ -188,8 +189,8 @@ class AssessCalibration {
             results_and_visualise();
         }
 
-        void results_and_visualise () 
-        {    
+        void results_and_visualise ()
+        {
             std::printf("\n---- Calculating average reprojection error on %d samples ---- \n", sample_list.size());
             // Calculate mean and stdev of pixel error across all test samples
             std::vector<float> pix_err, pix_errmm;
@@ -207,7 +208,7 @@ class AssessCalibration {
                 double h1_diff = abs(sample_list[i].heights[1] - board_dimensions.height);
                 double be_dim_err = w0_diff + w1_diff + h0_diff + h1_diff;
                 std::printf(" %3d/%3d | dist=%6.3fm, dimerr=%8.3fmm | error: %7.3fpix  --> %7.3fmm\n", i+1, sample_list.size(), sample_list[i].distance_from_origin, be_dim_err, pe, pe*sample_list[i].pixeltometre*1000);
-            }   
+            }
             float mean_pe, stdev_pe, mean_pemm, stdev_pemm;
             get_mean_stdev(pix_err, mean_pe, stdev_pe);
             get_mean_stdev(pix_errmm, mean_pemm, stdev_pemm);
@@ -215,12 +216,12 @@ class AssessCalibration {
             printf("\nMean reprojection error across  %d samples\n", sample_list.size());
             std::printf("- Error (pix) = %6.3f pix, stdev = %6.3f\n", mean_pe, stdev_pe);
             std::printf("- Error (mm)  = %6.3f mm , stdev = %6.3f\n\n\n", mean_pemm, stdev_pemm);
-            
+
             if (visualise)
             {
                 std::string image_path = data_dir + "/images/pose" + std::to_string(visualise_pose_num) + ".png";
                 std::string pcd_path = data_dir + "/pcd/pose" + std::to_string(visualise_pose_num) + "_full.pcd";
-                
+
                 //  Project the two centres onto an image
                 std::vector<cv::Point2d> cam_project, lidar_project;
                 cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR);
@@ -228,9 +229,9 @@ class AssessCalibration {
                     ROS_ERROR_STREAM("Could not read image file, check if image exists at: " << image_path);
                 }
 
-                pcl::PointCloud<pcl::PointXYZIR>::Ptr og_cloud(new pcl::PointCloud<pcl::PointXYZIR>);
-                pcl::PointCloud<pcl::PointXYZIR>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZIR>);
-                if(pcl::io::loadPCDFile<pcl::PointXYZIR> (pcd_path, *og_cloud) == -1)
+                pcl::PointCloud<ouster_ros::Point>::Ptr og_cloud(new pcl::PointCloud<ouster_ros::Point>);
+                pcl::PointCloud<ouster_ros::Point>::Ptr cloud(new pcl::PointCloud<ouster_ros::Point>);
+                if(pcl::io::loadPCDFile<ouster_ros::Point> (pcd_path, *og_cloud) == -1)
                 {
                     ROS_ERROR_STREAM("Could not read pcd file, check if pcd file exists at: " << pcd_path);
                 } else {
@@ -242,8 +243,8 @@ class AssessCalibration {
                     pcl::fromROSMsg(cloud_tf, *cloud);
 
                     if ( cloud->points.size() ) {
-                        
-                        for (pcl::PointCloud<pcl::PointXYZIR>::const_iterator it = cloud->begin(); it != cloud->end(); it++) {
+
+                        for (pcl::PointCloud<ouster_ros::Point>::const_iterator it = cloud->begin(); it != cloud->end(); it++) {
                             double tmpxC = it->x / it->z;
                             double tmpyC = it->y / it->z;
                             double tmpzC = it->z;
@@ -289,7 +290,7 @@ class AssessCalibration {
                 }
                 cv::Mat resized_img;
                 cv::resize(image, resized_img, cv::Size(), 0.75, 0.75);
-                cv::imshow("Reprojection", resized_img);        
+                cv::imshow("Reprojection", resized_img);
                 cv::waitKey(0);
             }
         }
@@ -301,7 +302,7 @@ class AssessCalibration {
             std::string line, word;
 
             std::ifstream read_samples(pose_path);
-            if (!read_samples.good()) 
+            if (!read_samples.good())
             {
                 ROS_ERROR_STREAM("REPROJECTION - No pose file found at " << pose_path);
             }
@@ -322,7 +323,7 @@ class AssessCalibration {
                     row.push_back({line_double[0], 0, 0});
                 }
             }
-            
+
             // Shove the double vector elements into the OptimiseSample struct
             int sample_numrows = 19; // non-zero indexed, but the i value is.
             for (int i = 0; i < row.size(); i+=sample_numrows) {
@@ -363,7 +364,7 @@ class AssessCalibration {
             std::vector<cv::Point3d> cam_centre_3d;
             std::vector<cv::Point3d> lidar_centre_3d;
 
-            // Need to rotate the lidar points to the camera frame if we want to project it into the image 
+            // Need to rotate the lidar points to the camera frame if we want to project it into the image
             // Cause otherwise, projectPoints function doesn't know how to project points that are in the lidar frame (duh!)
             cv::Point3d lidar_centre_camera_frame = cv::Point3d(rot_trans * sample.lidar_centre);
             cam_centre_3d.push_back(sample.camera_centre);
@@ -400,7 +401,7 @@ class AssessCalibration {
             stdev = sqrt(accum / (input_vec.size()-1));
         }
 
-        
+
 
     private:
         ros::NodeHandle public_nh_;
@@ -416,11 +417,11 @@ class AssessCalibration {
         int visualise_pose_num;
         bool visualise;
 
-        ros::Subscriber extrinsic_calib_param_sub_;   
+        ros::Subscriber extrinsic_calib_param_sub_;
         std_msgs::Float64MultiArray::ConstPtr param_msg;
         std::vector<OptimisationSample> sample_list;
         geometry_msgs::TransformStamped tf_msg;
-        RotationTranslation rot_trans;  
+        RotationTranslation rot_trans;
 };
 
 int main(int argc, char **argv)
@@ -429,5 +430,3 @@ int main(int argc, char **argv)
     AssessCalibration ac;
     ros::spin();
 }
-
-    

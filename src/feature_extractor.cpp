@@ -4,7 +4,7 @@
 
 #include <ros/ros.h>
 
-#include "cam_lidar_calibration/point_xyzir.h"
+// #include "cam_lidar_calibration/point_xyzir.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/common/intersections.h>
@@ -32,6 +32,8 @@
 
 #include <ros/package.h>
 
+#include <ouster_ros/point.h>
+
 // For shuffling of generated sets
 #include <algorithm>
 
@@ -39,7 +41,7 @@ using cv::findChessboardCorners;
 using cv::Mat_;
 using cv::Size;
 using cv::TermCriteria;
-using PointCloud = pcl::PointCloud<pcl::PointXYZIR>;
+using PointCloud = pcl::PointCloud<ouster_ros::Point>;
 
 namespace cam_lidar_calibration
 {
@@ -105,7 +107,7 @@ namespace cam_lidar_calibration
             }
             newdatafolder = data_dir + "/" + curdatetime;
         }
-        
+
         ROS_INFO("Finished init cam_lidar_calibration");
     }
 
@@ -178,7 +180,7 @@ namespace cam_lidar_calibration
         if (import_samples) {
             ROS_INFO_STREAM("Reading file: " << import_path);
             std::ifstream read_samples(import_path);
-            
+
 
             optimiser_->samples.resize(0);
 
@@ -273,7 +275,7 @@ namespace cam_lidar_calibration
         timer_all.tic();
         timer_assess.tic();
 
-        // Generate all N choose 3 combinations 
+        // Generate all N choose 3 combinations
         std::vector<OptimisationSample> set;
 
         // If less than 100 samples, we can get all 100C3, any more samples and NC3 grows too large so we just randomly sample for speed
@@ -290,9 +292,9 @@ namespace cam_lidar_calibration
                     new_sample = optimiser_->samples[rnd_snum];
                     int s_num = new_sample.sample_num;
                     auto it = std::find_if(set.begin(), set.end(), [&s_num](const OptimisationSample& obj) {return obj.sample_num == s_num;});
-                    
+
                     while(it != set.end())
-                    {                                
+                    {
                         int rnd_snum2 = rand() % optimiser_->samples.size();
                         new_sample = optimiser_->samples[rnd_snum2];
                         it = std::find_if(set.begin(), set.end(), [&new_sample](const OptimisationSample& obj) {return obj.sample_num == new_sample.sample_num;});
@@ -349,7 +351,7 @@ namespace cam_lidar_calibration
             new_set.voq = voq;
             new_set.set = optimiser_->sets[i];
 
-            // calib_list is a list of size 50 that maintains the lowest VOQ values 
+            // calib_list is a list of size 50 that maintains the lowest VOQ values
             // by keeping track of its max element, and replacing that with the next lowest VOQ.
             if (calib_list.size() < num_lowestvoq)
             {
@@ -396,7 +398,7 @@ namespace cam_lidar_calibration
 
             timer_set.tic();
             timer_set.tic();
-            printf(" %2d/%2d ", i+1, optimiser_->top_sets.size());
+            printf(" %2i/%2i ", i+1, optimiser_->top_sets.size());
             success = optimiser_->optimise(opt_result, optimiser_->top_sets[i], i_params.cameramat, i_params.distcoeff);
 
             // Save extrinsic params to csv for post processing
@@ -523,7 +525,7 @@ namespace cam_lidar_calibration
         PointCloud::Ptr x(new PointCloud);
         PointCloud::Ptr z(new PointCloud);
         // Filter out the experimental region
-        pcl::PassThrough<pcl::PointXYZIR> pass;
+        pcl::PassThrough<ouster_ros::Point> pass;
         pass.setInputCloud(input_pc);
         pass.setFilterFieldName("x");
         pass.setFilterLimits(bounds_.x_min, bounds_.x_max);
@@ -659,7 +661,7 @@ namespace cam_lidar_calibration
         }
 
         auto [rvec, tvec, board_corners_3d] = chessboardProjection(corners, cv_ptr);
-        
+
         cv::Mat rmat;
         cv::Rodrigues(rvec, rmat);
         cv::Mat z = cv::Mat(cv::Point3d(0., 0., -1.)); // TODO: why is this normal -1 in z? Surabhi's is just 1
@@ -667,7 +669,7 @@ namespace cam_lidar_calibration
 
         std::vector<cv::Point3d> corner_vectors;
         for (auto& corner : board_corners_3d)
-        {   
+        {
             cv::Mat m(rmat * cv::Mat(corner).reshape(1) + tvec);
             corner_vectors.push_back(cv::Point3d(m));
         }
@@ -678,20 +680,20 @@ namespace cam_lidar_calibration
         return std::make_tuple(corner_vectors, chessboard_normal);
     }
 
-    std::tuple<pcl::PointCloud<pcl::PointXYZIR>::Ptr, cv::Point3d>
+    std::tuple<pcl::PointCloud<ouster_ros::Point>::Ptr, cv::Point3d>
     FeatureExtractor::extractBoard(const PointCloud::Ptr& cloud, OptimisationSample &sample)
     {
         PointCloud::Ptr cloud_filtered(new PointCloud);
         // Filter out the board point cloud
         // find the point with max height(z val) in cloud_passthrough
-        pcl::PointXYZIR cloud_min, cloud_max;
+        ouster_ros::Point cloud_min, cloud_max;
         pcl::getMinMax3D(*cloud, cloud_min, cloud_max);
         double z_max = cloud_max.z;
         // subtract by approximate diagonal length (in metres)
         double diag = std::hypot(i_params.board_dimensions.height, i_params.board_dimensions.width) /
                       1000.0;  // board dimensions are in mm
         double z_min = z_max - diag;
-        pcl::PassThrough<pcl::PointXYZIR> pass_z;
+        pcl::PassThrough<ouster_ros::Point> pass_z;
         pass_z.setFilterFieldName("z");
         pass_z.setFilterLimits(z_min, z_max);
         pass_z.setInputCloud(cloud);
@@ -701,13 +703,13 @@ namespace cam_lidar_calibration
         // Inliers give the indices of the points that are within the RANSAC threshold
         pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
         pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
-        pcl::SACSegmentation<pcl::PointXYZIR> seg;
+        pcl::SACSegmentation<ouster_ros::Point> seg;
         seg.setOptimizeCoefficients(true);
         seg.setModelType(pcl::SACMODEL_PLANE);
         seg.setMethodType(pcl::SAC_RANSAC);
         seg.setMaxIterations(1000);
         seg.setDistanceThreshold(0.004);
-        pcl::ExtractIndices<pcl::PointXYZIR> extract;
+        pcl::ExtractIndices<ouster_ros::Point> extract;
         seg.setInputCloud(cloud_filtered);
         seg.segment(*inliers, *coefficients);
 
@@ -726,7 +728,7 @@ namespace cam_lidar_calibration
 
         // Project the inliers on the fitted plane
         // When it freezes the chessboard after capture, what you see are the inlier points (filtered from the original)
-        pcl::ProjectInliers<pcl::PointXYZIR> proj;
+        pcl::ProjectInliers<ouster_ros::Point> proj;
         proj.setModelType(pcl::SACMODEL_PLANE);
         proj.setInputCloud(cloud_filtered);
         proj.setModelCoefficients(coefficients);
@@ -746,7 +748,7 @@ namespace cam_lidar_calibration
         pcl::PointIndices::Ptr full_inliers(new pcl::PointIndices), half_inliers(new pcl::PointIndices);
         PointCloud::Ptr half_cloud(new PointCloud);
 
-        pcl::SACSegmentation<pcl::PointXYZIR> seg;
+        pcl::SACSegmentation<ouster_ros::Point> seg;
         seg.setModelType(pcl::SACMODEL_LINE);
         seg.setMethodType(pcl::SAC_RANSAC);
         seg.setDistanceThreshold(0.02);
@@ -758,22 +760,22 @@ namespace cam_lidar_calibration
             return std::make_pair(full_coeff, full_coeff);
         }
 
-        pcl::ExtractIndices<pcl::PointXYZIR> extract;
+        pcl::ExtractIndices<ouster_ros::Point> extract;
         extract.setInputCloud(edge_pair_cloud);
         extract.setIndices(full_inliers);
         extract.setNegative(true);
         extract.filter(*half_cloud);
         seg.setInputCloud(half_cloud);
         seg.segment(*half_inliers, half_coeff);
-        
-         // Failed RANSAC returns empty coeffs        
+
+         // Failed RANSAC returns empty coeffs
         if (half_coeff.values.empty()) {
             return std::make_pair(half_coeff, half_coeff);
         }
 
         // Fitting line2 through outlier points
         // Determine which is above the other
-        pcl::PointXYZIR full_min, full_max, half_min, half_max;
+        ouster_ros::Point full_min, full_max, half_min, half_max;
         pcl::getMinMax3D(*edge_pair_cloud, full_min, full_max);
         pcl::getMinMax3D(*half_cloud, half_min, half_max);
         if (full_max.z > half_max.z)
@@ -789,7 +791,7 @@ namespace cam_lidar_calibration
     void FeatureExtractor::distoffset_passthrough(const PointCloud::ConstPtr& input_pc, PointCloud::Ptr& output_pc)
     {
         if (distance_offset != 0) {
-            pcl::PointCloud<pcl::PointXYZIR>::Ptr distoffset_pcl(new pcl::PointCloud<pcl::PointXYZIR>);
+            pcl::PointCloud<ouster_ros::Point>::Ptr distoffset_pcl(new pcl::PointCloud<ouster_ros::Point>);
             distoffset_pcl->header = input_pc->header;
             for (auto p : input_pc->points)
             {
@@ -819,7 +821,7 @@ namespace cam_lidar_calibration
                 float r_do = r + distance_offset / 1000;
 
                 // convert back to cartesian
-                pcl::PointXYZIR point;
+                ouster_ros::Point point;
                 point.x = r_do * sinf(theta) * cosf(phi);
                 point.y = r_do * sinf(theta) * sinf(phi);
                 point.z = r_do * cosf(theta);
@@ -831,7 +833,7 @@ namespace cam_lidar_calibration
         } else {
             passthrough(input_pc, output_pc);
         }
-        
+
     }
 
 // Extract features of interest
@@ -897,7 +899,7 @@ namespace cam_lidar_calibration
             // Second: Arrange points in every ring in descending order of y coordinate
             for (auto& ring : ring_pointclouds)
             {
-                std::sort(ring.begin(), ring.end(), [](pcl::PointXYZIR p1, pcl::PointXYZIR p2) { return p1.y > p2.y; });
+                std::sort(ring.begin(), ring.end(), [](ouster_ros::Point p1, ouster_ros::Point p2) { return p1.y > p2.y; });
             }
 
             // Third: Find minimum and maximum points in a ring
@@ -1034,18 +1036,18 @@ namespace cam_lidar_calibration
             cv_bridge::CvImagePtr cv_ptr;
             cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
 
-            // Save image 
+            // Save image
             if(boost::filesystem::create_directory(newdatafolder))
-            {   
+            {
                 boost::filesystem::create_directory(newdatafolder + "/images");
                 boost::filesystem::create_directory(newdatafolder + "/pcd");
                 ROS_INFO_STREAM("Save data folder created at " << newdatafolder);
-            } 
-            std::string img_filepath = newdatafolder + "/images/pose" + std::to_string(num_samples)  + ".png" ;              
-            std::string target_pcd_filepath = newdatafolder + "/pcd/pose" + std::to_string(num_samples)  + "_target.pcd" ;              
-            std::string full_pcd_filepath = newdatafolder + "/pcd/pose" + std::to_string(num_samples)  + "_full.pcd" ;              
-            
-            ROS_ASSERT( cv::imwrite( img_filepath,  cv_ptr->image ) );   
+            }
+            std::string img_filepath = newdatafolder + "/images/pose" + std::to_string(num_samples)  + ".png" ;
+            std::string target_pcd_filepath = newdatafolder + "/pcd/pose" + std::to_string(num_samples)  + "_target.pcd" ;
+            std::string full_pcd_filepath = newdatafolder + "/pcd/pose" + std::to_string(num_samples)  + "_full.pcd" ;
+
+            ROS_ASSERT( cv::imwrite( img_filepath,  cv_ptr->image ) );
             pcl::io::savePCDFileASCII (target_pcd_filepath, *cloud_bounded);
             pcl::io::savePCDFileASCII (full_pcd_filepath, *pointcloud);
             ROS_INFO_STREAM("Image and pcd file saved");
@@ -1073,8 +1075,8 @@ namespace cam_lidar_calibration
                                         << ",0.0"
                                         << "," << i_params.cameramat.at<double>(1,1)
                                         << "," << i_params.cameramat.at<double>(1,2)
-                                        << ",0.0,0.0" 
-                                        << "," << i_params.cameramat.at<double>(2, 2) 
+                                        << ",0.0,0.0"
+                                        << "," << i_params.cameramat.at<double>(2, 2)
                                         << "]\n";
                 camera_info_file.close();
             }

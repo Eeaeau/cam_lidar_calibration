@@ -145,15 +145,14 @@ Visualization Manager:
       Enabled: true
       Marker Topic: /feature_extraction/collected_samples
       Name: MarkerArray
-      Namespaces:
-        {}
+      Namespaces: {}
       Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: velodyne_front_link
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
