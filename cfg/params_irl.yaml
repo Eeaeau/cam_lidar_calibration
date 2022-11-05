@@ -1,0 +1,26 @@
+# Topics
+camera_topic: "/camera_manager/main/image_raw"
+camera_info: "/camera_manager/main/camera_info"
+lidar_topic: "/os1_cloud_node/points"
+
+# Dynamic rqt_reconfigure default bounds
+feature_extraction:
+  x_min: 1.0
+  x_max: 2.4
+  y_min: -0.8
+  y_max: 1.0
+  z_min: -0.45
+  z_max: 5.0
+
+# Properties of chessboard calibration target
+chessboard:
+  pattern_size:
+    height: 11
+    width: 7
+  square_length: 95
+  board_dimension:
+    width: 841
+    height: 1189
+  translation_error:
+    x: 0
+    y: 0

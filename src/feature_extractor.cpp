@@ -707,7 +707,9 @@ namespace cam_lidar_calibration
         seg.setOptimizeCoefficients(true);
         seg.setModelType(pcl::SACMODEL_PLANE);
         seg.setMethodType(pcl::SAC_RANSAC);
-        seg.setMaxIterations(1000);
+        seg.setMaxIterations(50);
+        seg.setEpsAngle(0.01);
+        seg.setProbability(0.9999);
         seg.setDistanceThreshold(0.004);
         pcl::ExtractIndices<ouster_ros::Point> extract;
         seg.setInputCloud(cloud_filtered);
